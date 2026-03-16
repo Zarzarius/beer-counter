@@ -55,6 +55,10 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.no-scroll {
+  overflow: hidden;
+}
+
 /* Base elements */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
@@ -215,7 +219,7 @@ input, textarea, select {
 .beer-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .beer-item {
@@ -471,9 +475,10 @@ input, textarea, select {
 
 .beer-group-items {
   flex-direction: column;
+  gap: 0.5rem;
   background: rgba(0, 0, 0, 0.15);
   margin: 0 -0.5rem;
-  padding: 0.5rem;
+  padding: 0.65rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -481,7 +486,7 @@ input, textarea, select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 1rem;
+  padding: 0.85rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   font-size: 0.85rem;
   animation: slideDown 0.2s ease forwards;
@@ -510,14 +515,17 @@ input, textarea, select {
 .item-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .btn-icon {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-secondary);
-  width: 28px;
-  height: 28px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -687,4 +695,8 @@ input, textarea, select {
   animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Beer stock catalog table – alternating row colors (set inline) + hover */
+#catalog-table-wrap .catalog-table tbody tr.catalog-table-row:hover {
+  background-color: rgba(56, 189, 248, 0.2) !important;
+}
 
