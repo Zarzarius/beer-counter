@@ -8,7 +8,7 @@ import Layout from '../layouts/Layout.astro';
       
       <div class="auth-header">
         <div class="icon-wrapper">
-          <img src="/logo.webp" alt="Beer Tab Logo" class="brand-logo" />
+          <img src="/logo.webp" alt="Beer Tab Logo" class="brand-logo" width="128" height="128" />
         </div>
         <h1>Welcome Back</h1>
         <p>Sign in to your tab</p>
@@ -32,15 +32,34 @@ import Layout from '../layouts/Layout.astro';
         <form id="auth-form" class="auth-form">
           <div class="input-group">
             <label for="email" class="input-label">Email</label>
-            <input type="email" id="email" name="email" class="input-field" placeholder="you@example.com" required>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="input-field"
+              placeholder="you@example.com"
+              required
+              autocomplete="email"
+              spellcheck="false"
+              autocapitalize="none"
+            >
           </div>
           
           <div class="input-group">
             <label for="password" class="input-label">Password</label>
-            <input type="password" id="password" name="password" class="input-field" placeholder="••••••••" required>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="input-field"
+              placeholder="••••••••"
+              required
+              autocomplete="current-password"
+              spellcheck="false"
+            >
           </div>
 
-          <div id="error-msg" class="error-msg" style="display: none;"></div>
+          <div id="error-msg" class="error-msg" role="alert" aria-live="polite" style="display: none;"></div>
 
           <button type="submit" id="submit-btn" class="btn-primary login-btn">
             Sign In
@@ -63,7 +82,7 @@ import Layout from '../layouts/Layout.astro';
   const authForm = document.getElementById('auth-form') as HTMLFormElement;
   const emailInput = document.getElementById('email') as HTMLInputElement;
   const passwordInput = document.getElementById('password') as HTMLInputElement;
-  const submitBtn = document.getElementById('submit-btn');
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
   const toggleBtn = document.getElementById('toggle-btn');
   const googleLoginBtn = document.getElementById('google-login');
   const errorMsg = document.getElementById('error-msg');
@@ -95,7 +114,11 @@ import Layout from '../layouts/Layout.astro';
     if (errorMsg) errorMsg.style.display = 'none';
 
     try {
-      if (submitBtn) submitBtn.textContent = 'Loading...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.setAttribute('aria-busy', 'true');
+        submitBtn.textContent = 'Loading…';
+      }
       
       const email = emailInput.value;
       const password = passwordInput.value;
@@ -124,6 +147,8 @@ import Layout from '../layouts/Layout.astro';
     } finally {
       if (submitBtn) {
         submitBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+        submitBtn.disabled = false;
+        submitBtn.removeAttribute('aria-busy');
       }
     }
   });
@@ -136,7 +161,8 @@ import Layout from '../layouts/Layout.astro';
     
     try {
       if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).disabled = true;
-      if (btnText) btnText.textContent = 'Redirecting...';
+      if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).setAttribute('aria-busy', 'true');
+      if (btnText) btnText.textContent = 'Redirecting…';
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -154,6 +180,7 @@ import Layout from '../layouts/Layout.astro';
         errorMsg.style.display = 'block';
       }
       if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).disabled = false;
+      if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).removeAttribute('aria-busy');
       if (btnText) btnText.textContent = 'Continue with Google';
     }
   });
@@ -287,6 +314,12 @@ import Layout from '../layouts/Layout.astro';
 
   .text-btn:hover {
     text-decoration: underline;
+  }
+
+  .text-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--brand-primary-light);
+    border-radius: 0.5rem;
   }
 
   .error-msg {
