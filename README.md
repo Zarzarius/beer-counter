@@ -43,6 +43,14 @@ Track drinks and settle your bar tab. A small web app built with [Astro](https:/
 
    Open [http://localhost:4321](http://localhost:4321).
 
+## Guest Access
+
+- The login screen includes a **Continue as guest** option. It creates a **one-time email/password** Supabase user with a random address like `guest-<uuid>@guest.local` and a random password (you do not need to remember them; the session is kept by the Supabase client like any other login).
+- Guest users get a `profiles` row as `customer` and can use the normal customer tab flow (including editing their display name).
+- **Email confirmation:** Guest sign-in needs an immediate session. In Supabase **Authentication → Providers → Email**, disable **Confirm email** (or otherwise allow automatic confirmation for new users). If confirmation stays required, guest sign-up will fail with a clear in-app message.
+- For users without a stored email (edge cases), the UI may still show a stable synthetic guest email in the profile.
+- Manager access still requires a profile with `role = manager`.
+
 ## Commands
 
 | Command           | Action                                      |

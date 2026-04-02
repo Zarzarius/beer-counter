@@ -65,6 +65,10 @@ import Layout from '../layouts/Layout.astro';
             Sign In
           </button>
         </form>
+
+        <button type="button" id="guest-login" class="btn-secondary guest-btn">
+          Continue as guest
+        </button>
         
         <div class="toggle-mode">
           <p>Don't have an account? <button type="button" id="toggle-btn" class="text-btn">Sign up</button></p>
@@ -85,7 +89,35 @@ import Layout from '../layouts/Layout.astro';
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
   const toggleBtn = document.getElementById('toggle-btn');
   const googleLoginBtn = document.getElementById('google-login');
+  const guestLoginBtn = document.getElementById('guest-login');
   const errorMsg = document.getElementById('error-msg');
+
+  function buildGuestEmail(userId: string): string {
+    const stableSuffix = userId.replaceAll('-', '').slice(0, 12) || 'user';
+    return `guest-${stableSuffix}@guest.local`;
+  }
+
+  async function ensureGuestProfile(user: any) {
+    const guestEmail = user.email || buildGuestEmail(user.id);
+    const { error } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: user.id,
+          email: guestEmail,
+          full_name: 'Guest',
+          role: 'customer',
+        },
+        { onConflict: 'id' },
+      );
+    if (error) throw error;
+  }
+
+  function randomGuestPassword(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
 
   // Toggle between Sign In and Sign Up
   toggleBtn?.addEventListener('click', () => {
@@ -182,6 +214,52 @@ import Layout from '../layouts/Layout.astro';
       if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).disabled = false;
       if (googleLoginBtn) (googleLoginBtn as HTMLButtonElement).removeAttribute('aria-busy');
       if (btnText) btnText.textContent = 'Continue with Google';
+    }
+  });
+
+  // Handle Guest Login
+  guestLoginBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (errorMsg) errorMsg.style.display = 'none';
+    const guestBtn = guestLoginBtn as HTMLButtonElement;
+    const originalText = guestBtn.textContent ?? 'Continue as guest';
+
+    try {
+      guestBtn.disabled = true;
+      guestBtn.setAttribute('aria-busy', 'true');
+      guestBtn.textContent = 'Loading…';
+
+      // Anonymous sign-in is often disabled in Supabase. Guest mode uses a one-time
+      // email/password account (random credentials; session stored by Supabase client).
+      const guestEmail = `guest-${crypto.randomUUID()}@guest.local`;
+      const guestPassword = randomGuestPassword();
+
+      const { data, error } = await supabase.auth.signUp({
+        email: guestEmail,
+        password: guestPassword,
+      });
+      if (error) throw error;
+
+      if (!data.session) {
+        throw new Error(
+          'Guest sign-in did not return a session. In Supabase: Authentication → Providers → Email, turn off “Confirm email” (or enable automatic confirmation) so guest accounts can sign in immediately.',
+        );
+      }
+
+      const user = data.user;
+      if (!user) throw new Error('Unable to create guest session');
+
+      await ensureGuestProfile(user);
+      window.location.href = '/customer';
+    } catch (err: any) {
+      if (errorMsg) {
+        errorMsg.textContent = err.message || 'Error creating guest session';
+        errorMsg.style.display = 'block';
+      }
+    } finally {
+      guestBtn.disabled = false;
+      guestBtn.removeAttribute('aria-busy');
+      guestBtn.textContent = originalText;
     }
   });
   
@@ -295,6 +373,10 @@ import Layout from '../layouts/Layout.astro';
   .login-btn {
     width: 100%;
     margin-top: 0.5rem;
+  }
+
+  .guest-btn {
+    width: 100%;
   }
 
   .toggle-mode {

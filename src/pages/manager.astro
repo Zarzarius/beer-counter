@@ -253,7 +253,7 @@ import Layout from '../layouts/Layout.astro';
 
     console.log('[Manager] Fetching profile...');
     const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', session.user.id).single();
+      .from('profiles').select('role').eq('id', session.user.id).maybeSingle();
     console.log('[Manager] Profile role:', profile?.role);
 
     if (profile?.role !== 'manager') { 
