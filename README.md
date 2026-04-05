@@ -12,7 +12,35 @@ Track drinks and settle your bar tab. A small web app built with [Astro](https:/
 ## Requirements
 
 - **Node.js** ≥ 22.12.0  
-- **pnpm** 9.x (see [pnpm install](https://pnpm.io/installation))
+- **pnpm** 9.x (see [pnpm install](https://pnpm.io/installation))  
+- **React** (via `@astrojs/react`) for interactive **client islands** on tab pages; the rest of the site stays static Astro.
+
+## Security (RLS)
+
+The browser uses only the **anon** key, so **Row Level Security** must enforce access in Postgres.
+
+1. In the Supabase SQL editor, run **[`supabase/rls_policies.sql`](supabase/rls_policies.sql)**  
+   Creates `profiles` / `beers` if missing, adds `public.is_manager()`, a trigger that **blocks changing `profiles.role`**, and policies so:
+
+   - **Customers** — read/update their own `profiles` row (insert only as `role = customer`); read/write/delete only their own `beers` rows.
+   - **Managers** — read all `beers`; update/delete any `beer`; read `profiles` rows where `role = 'customer'` (for the dashboard).
+
+2. If you use **`beer_stock`**, run **[`supabase/beer_stock_schema.sql`](supabase/beer_stock_schema.sql)** first, then **[`supabase/beer_stock_rls.sql`](supabase/beer_stock_rls.sql)**  
+   Authenticated users may **select** available rows (`is_unavailable = false`); managers may **read/write** the full catalog.
+
+3. **Managers** are not creatable from the app: set `profiles.role = 'manager'` in SQL (or the dashboard) for a chosen user id.
+
+4. Enable **Realtime** for `public.beers` (and optionally `beer_stock`) under **Database → Replication** if you rely on live updates.
+
+### Versioned migrations (Supabase CLI)
+
+The same SQL is tracked under [`supabase/migrations/`](supabase/migrations/) in apply order:
+
+1. `20250405120000_profiles_beers_rls.sql` — `profiles`, `beers`, RLS, `is_manager()`, role trigger  
+2. `20250405120001_beer_stock_table.sql` — optional `beer_stock` table + view  
+3. `20250405120002_beer_stock_rls.sql` — RLS for `beer_stock`
+
+With the [Supabase CLI](https://supabase.com/docs/guides/cli) linked to your project, run `supabase db push` (or your usual migration workflow) to apply them. The flat files [`supabase/rls_policies.sql`](supabase/rls_policies.sql), [`supabase/beer_stock_schema.sql`](supabase/beer_stock_schema.sql), and [`supabase/beer_stock_rls.sql`](supabase/beer_stock_rls.sql) match these migrations for manual runs in the SQL editor.
 
 ## Setup
 
@@ -62,6 +90,8 @@ Track drinks and settle your bar tab. A small web app built with [Astro](https:/
 | `pnpm test`       | Run the Vitest suite                        |
 | `pnpm astro ...`  | Run Astro CLI (e.g. `astro add`, `astro check`) |
 
+**CI:** On push/PR to `main` or `master`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs `pnpm install`, `astro check`, `vitest`, and `astro build`.
+
 ## Project structure
 
 ```text
@@ -71,8 +101,10 @@ Track drinks and settle your bar tab. A small web app built with [Astro](https:/
 ├── src/
 │   ├── data/        # Beer catalog (beerCatalog.ts)
 │   ├── layouts/     # Layout.astro
+│   ├── components/  # React islands (e.g. customer tab UI)
 │   ├── lib/         # Shared logic
 │   │   ├── supabase.ts
+│   │   ├── dayKeys.ts          # Shared calendar-day helpers (customer + manager)
 │   │   ├── beerCatalogSearch.ts, beerCatalogResults.ts, beerCatalogInputMode.ts
 │   │   └── escapeHtml.ts
 │   ├── pages/       # Routes
@@ -83,7 +115,10 @@ Track drinks and settle your bar tab. A small web app built with [Astro](https:/
 │   │   └── scan.astro
 │   └── styles/      # global.css
 ├── supabase/
-│   ├── beer_stock_schema.sql   # beer_stock table + beer_stock_available view
+│   ├── migrations/             # Ordered SQL for Supabase CLI (db push)
+│   ├── rls_policies.sql        # Same as migration 00 (manual SQL editor)
+│   ├── beer_stock_schema.sql   # Same as migration 01 (manual)
+│   ├── beer_stock_rls.sql      # Same as migration 02 (manual)
 │   └── data.csv                # Optional CSV for stock data
 ├── astro.config.mjs
 ├── package.json
@@ -96,7 +131,7 @@ Routes are defined by `.astro` (and `.md`) files in `src/pages/`.
 
 To back the beer catalog with Supabase:
 
-1. Run `beer_stock_schema.sql` in the Supabase SQL editor to create the `beer_stock` table and `beer_stock_available` view.
+1. Run `rls_policies.sql` first (for `is_manager()`), then `beer_stock_schema.sql`, then `beer_stock_rls.sql` in the Supabase SQL editor to create the `beer_stock` table, view, and policies.
 2. Seed from the in-app catalog (requires service role key):
 
    ```sh

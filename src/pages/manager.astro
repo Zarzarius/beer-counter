@@ -15,6 +15,14 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </header>
 
+    <div
+      id="manager-app-error"
+      class="manager-app-error glass-panel"
+      role="alert"
+      aria-live="assertive"
+      hidden
+    ></div>
+
     <div class="glass-panel stats-panel animate-fade-in" style="animation-delay: 0.1s;">
       <div class="stat-box">
         <span class="stat-label">Active Customers</span>
@@ -194,8 +202,33 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
+  import { formatDayLabel, getDateKey, getDayBoundsISO, getTodayKey } from '../lib/dayKeys';
   import { supabase } from '../lib/supabase';
   import { escapeHtml } from '../lib/escapeHtml';
+
+  const dbg = (...args: unknown[]) => {
+    if (import.meta.env.DEV) console.log(...args);
+  };
+
+  let managerErrorTimer: number | undefined;
+  function showManagerError(message: string) {
+    const el = document.getElementById('manager-app-error');
+    if (!el) return;
+    el.textContent = message;
+    el.hidden = false;
+    if (managerErrorTimer !== undefined) window.clearTimeout(managerErrorTimer);
+    managerErrorTimer = window.setTimeout(() => {
+      el.hidden = true;
+    }, 10000);
+  }
+
+  function errorDetail(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const m = (err as { message: string }).message;
+      if (typeof m === 'string' && m.length > 0) return `${fallback}: ${m}`;
+    }
+    return fallback;
+  }
 
   type BeerStockRow = {
     id: string;
@@ -246,26 +279,26 @@ import Layout from '../layouts/Layout.astro';
   const stockSaveBtn = document.getElementById('stock-save-btn') as HTMLButtonElement | null;
 
   async function init() {
-    console.log('[Manager] init() called');
+    dbg('[Manager] init() called');
     const { data: { session } } = await supabase.auth.getSession();
-    console.log('[Manager] Session found:', !!session);
+    dbg('[Manager] Session found:', !!session);
     if (!session) { window.location.href = '/login'; return; }
 
-    console.log('[Manager] Fetching profile...');
+    dbg('[Manager] Fetching profile...');
     const { data: profile } = await supabase
       .from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-    console.log('[Manager] Profile role:', profile?.role);
+    dbg('[Manager] Profile role:', profile?.role);
 
     if (profile?.role !== 'manager') { 
-      console.warn('[Manager] Access denied: not a manager');
+      if (import.meta.env.DEV) console.warn('[Manager] Access denied: not a manager');
       window.location.href = '/customer'; 
       return; 
     }
 
-    console.log('[Manager] Loading dashboard data...');
+    dbg('[Manager] Loading dashboard data...');
     try {
       await loadDashboard();
-      console.log('[Manager] Dashboard loaded');
+      dbg('[Manager] Dashboard loaded');
     } catch (err) {
       console.error('[Manager] Dashboard load failed:', err);
     }
@@ -301,38 +334,17 @@ import Layout from '../layouts/Layout.astro';
     wireStockEvents();
 
     // Realtime: refresh manager dashboard on any beer change
-    console.log('[Realtime] Setting up manager subscription...');
+    dbg('[Realtime] Setting up manager subscription...');
     supabase
       .channel('manager-beers')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'beers' }, (payload) => {
-        console.log('[Realtime] MANAGER RECEIVED CHANGE:', payload);
+        dbg('[Realtime] MANAGER RECEIVED CHANGE:', payload);
         loadDashboard();
       })
       .subscribe((status, err) => {
-        console.log('[Realtime] Manager subscription status:', status);
+        dbg('[Realtime] Manager subscription status:', status);
         if (err) console.error('[Realtime] Manager subscription error:', err);
       });
-  }
-
-  function getDateKey(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-  function getTodayKey(): string {
-    return getDateKey(new Date());
-  }
-
-  function formatDayLabel(key: string): string {
-    const today = getTodayKey();
-    if (key === today) return 'Today';
-    const d = new Date(key + 'T12:00:00');
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (getDateKey(yesterday) === key) return 'Yesterday';
-    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   function updateDayUI() {
@@ -361,16 +373,6 @@ import Layout from '../layouts/Layout.astro';
       dayNextBtn.setAttribute('aria-disabled', idx <= 0 ? 'true' : 'false');
       dayNextBtn.disabled = idx <= 0;
     }
-  }
-
-  function getDayBoundsISO(dayKey: string): { startISO: string; endISO: string } {
-    const [yearStr, monthStr, dayStr] = dayKey.split('-');
-    const year = Number(yearStr);
-    const monthIndex = Number(monthStr) - 1; // local timezone month index
-    const day = Number(dayStr);
-    const startLocal = new Date(year, monthIndex, day, 0, 0, 0, 0);
-    const endLocal = new Date(year, monthIndex, day + 1, 0, 0, 0, 0);
-    return { startISO: startLocal.toISOString(), endISO: endLocal.toISOString() };
   }
 
   async function loadDashboard() {
@@ -570,7 +572,7 @@ import Layout from '../layouts/Layout.astro';
           if (error) throw error;
           await loadDashboard();
         } catch (err) {
-          alert('Error updating database');
+          showManagerError(errorDetail(err, 'Could not update drinks'));
           el.textContent = 'Mark All Paid';
           el.disabled = false;
         }
@@ -589,7 +591,7 @@ import Layout from '../layouts/Layout.astro';
           if (error) throw error;
           await loadDashboard();
         } catch (err) {
-          alert('Error toggling status');
+          showManagerError(errorDetail(err, 'Could not update payment status'));
         }
       });
     });
@@ -634,7 +636,7 @@ import Layout from '../layouts/Layout.astro';
         editModal.style.display = 'none';
         await loadDashboard();
       } catch (err) {
-        alert('Error saving changes');
+        showManagerError(errorDetail(err, 'Could not save changes'));
       }
     });
 
@@ -647,7 +649,7 @@ import Layout from '../layouts/Layout.astro';
         editModal.style.display = 'none';
         await loadDashboard();
       } catch (err) {
-        alert('Error deleting drink');
+        showManagerError(errorDetail(err, 'Could not delete drink'));
       }
     });
   }
@@ -779,7 +781,7 @@ import Layout from '../layouts/Layout.astro';
         closeStockModal();
         await loadStock();
       } catch (err) {
-        alert('Error saving beer. Please try again.');
+        showManagerError(errorDetail(err, 'Could not save catalog beer'));
         console.error('[Manager] Save error:', err);
       } finally {
         stockSaveBtn.textContent = originalText;
@@ -798,7 +800,7 @@ import Layout from '../layouts/Layout.astro';
         closeStockModal();
         await loadStock();
       } catch (err) {
-        alert('Error deleting beer. Please try again.');
+        showManagerError(errorDetail(err, 'Could not delete catalog beer'));
         console.error('[Manager] Delete error:', err);
       }
     });
@@ -861,6 +863,18 @@ import Layout from '../layouts/Layout.astro';
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .manager-app-error {
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .manager-app-error[hidden] {
+    display: none !important;
   }
 
   #stock-overlay.modal-overlay {

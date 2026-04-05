@@ -1,6 +1,4 @@
--- Beer stock/catalog table schema for manager-controlled beers
--- Apply this in your Supabase SQL editor or migrations system.
--- Mirrored in supabase/migrations/20250405120001_beer_stock_table.sql
+-- Optional beer_stock catalog (requires 20250405120000_profiles_beers_rls.sql for is_manager)
 
 create table if not exists public.beer_stock (
   id uuid primary key default gen_random_uuid(),
@@ -15,16 +13,10 @@ create table if not exists public.beer_stock (
   updated_at timestamptz not null default now()
 );
 
--- Simple index to speed up name/brewery/style search.
--- Note: This uses a standard btree index for portability across environments.
 create index if not exists beer_stock_name_brewery_style_idx
   on public.beer_stock (name, brewery, style);
 
--- Optional helper: view only currently available beers
 create or replace view public.beer_stock_available as
 select *
 from public.beer_stock
 where is_unavailable = false;
-
--- Enforce access in production: after creating this table, run supabase/beer_stock_rls.sql
--- (requires supabase/rls_policies.sql first for public.is_manager()).
