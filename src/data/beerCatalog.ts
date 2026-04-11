@@ -6,6 +6,7 @@ export type BeerCatalogEntry = {
 };
 
 export const beerCatalog: BeerCatalogEntry[] = [
+  { brewery: "FUERST WIACEK Berlin", name: "Offline", year: "N/A", style: "IPA - New England / Hazy" },
   { brewery: "Camba Bavaria", name: "Cherry Smoke Syndicate - Brewmaster Edition", year: "N/A", style: "Smoked Beer" },
   { brewery: "Stigbergets Bryggeri", name: "Killer Pale", year: "N/A", style: "Pale Ale - New England / Hazy" },
   { brewery: "Buddelship Brauerei", name: "Off-Road", year: "N/A", style: "Pilsner - New Zealand" },
@@ -114,7 +115,6 @@ export const beerCatalog: BeerCatalogEntry[] = [
   { brewery: "Popihn Sauvages", name: "PENJAMOUSSE (2025)", year: "2025", style: "Wild Ale - Other" },
   { brewery: "Northern Monk", name: "PATRONS PROJECT 50.01 // DAVID BAILEY // EXTRA EXTRA SPECIAL BITTER", year: "N/A", style: "Bitter - Extra Special / Strong (ESB)" },
   { brewery: "Brauerei Knoblach Schammelsdorf", name: "Stammberg Bock", year: "N/A", style: "Bock - Hell / Maibock / Lentebock" },
-  { brewery: "Lieber Waldi", name: "Santa Paws", year: "N/A", style: "IPA - New England / Hazy" },
   { brewery: "Lieber Waldi", name: "Winter Waldiland", year: "N/A", style: "Lager - Munich Dunkel" },
   { brewery: "Brasserie d'Achouffe", name: "N'Ice Chouffe", year: "N/A", style: "Winter Ale" },
   { brewery: "Stone Brewing", name: "Stone Imperial Stout", year: "N/A", style: "Stout - Imperial / Double" },
