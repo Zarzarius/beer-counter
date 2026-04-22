@@ -184,4 +184,7 @@ export const beerCatalog: BeerCatalogEntry[] = [
   { brewery: "Brouwerij 3 Fonteinen", name: "Oude Kriek", year: "N/A", style: "Lambic - Kriek" },
   { brewery: "Brouwerij Rodenbach", name: "Alexander", year: "N/A", style: "Sour - Flanders Red Ale" },
   { brewery: "Omnipollo", name: "Noa Pecan Mud Cake Stout", year: "N/A", style: "Stout - Imperial / Double Pastry" },
+  { brewery: "Cantina Errante", name: "Brut IPA", year: "N/A", style: "IPA - Brut" },
+  { brewery: "Sierra Nevada Brewing Co.", name: "Pale Ale", year: "N/A", style: "Pale Ale - American" },
+  { brewery: "Lindemans", name: "Kriek", year: "N/A", style: "Lambic - Kriek" },
 ];
