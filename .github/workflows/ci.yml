@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_SUPABASE_URL: https://example.supabase.co
+      PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
     steps:
       - uses: actions/checkout@v4
 
